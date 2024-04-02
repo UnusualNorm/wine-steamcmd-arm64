@@ -1,11 +1,16 @@
-FROM ghcr.io/sonroyaalmerol/steamcmd-arm64:root-bullseye
+FROM weilbyte/box
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash curl ca-certificates \
+    xvfb
 
 COPY install-wine.sh /install-wine.sh
 RUN chmod +x /install-wine.sh
 RUN /install-wine.sh
+RUN rm /install-wine.sh
 
-COPY install-winetricks.sh /install-winetricks.sh
-RUN chmod +x /install-winetricks.sh
-RUN /install-winetricks.sh
+RUN apt-get -y autoremove \
+ && apt-get clean autoclean \
+ && rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists
 
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+ ENTRYPOINT ["/usr/local/bin/box64", "/usr/local/bin/wine64"]
