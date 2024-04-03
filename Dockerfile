@@ -13,4 +13,4 @@ RUN apt-get -y autoremove \
  && apt-get clean autoclean \
  && rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists
 
- ENTRYPOINT ["/usr/local/bin/box64", "/usr/local/bin/wine64"]
+ENTRYPOINT ["/usr/local/bin/box64", "/usr/local/bin/wine64"]

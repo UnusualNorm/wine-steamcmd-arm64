@@ -86,11 +86,11 @@ apt-get install --no-install-recommends -y ${wine64_dependencies[@]}
 
 rm ${WINE32_MAIN_DEB} ${WINE32_SUPPORT_DEB} ${WINE64_MAIN_DEB} ${WINE64_SUPPORT_DEB}
 
-ln -s ~/wine/bin/wine /usr/local/bin/wine
-ln -s ~/wine/bin/wine64 /usr/local/bin/wine64
+echo "box86 ~/wine/bin/wine \$@" >> /usr/local/bin/wine
+echo "box64 ~/wine/bin/wine64 \$@" >> /usr/local/bin/wine64
 ln -s ~/wine/bin/wineboot /usr/local/bin/wineboot
 ln -s ~/wine/bin/winecfg /usr/local/bin/winecfg
-ln -s ~/wine/bin/wineserver /usr/local/bin/wineserver
+echo "box64 ~/wine/bin/wineserver \$@" >> /usr/local/bin/wineserver
 chmod +x /usr/local/bin/wine /usr/local/bin/wine64 /usr/local/bin/wineboot /usr/local/bin/winecfg /usr/local/bin/wineserver
 
 apt-get install --no-install-recommends -y cabextract
