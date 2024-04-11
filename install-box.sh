@@ -9,3 +9,5 @@ wget -qO- https://ryanfortner.github.io/box64-debs/KEY.gpg | gpg --dearmor -o /e
 
 dpkg --add-architecture armhf && dpkg --add-architecture arm64
 apt-get update && apt-get install --no-install-recommends -y box86:armhf box64:arm64
+
+apt-get autoremove -y && apt-get clean autoclean && rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists

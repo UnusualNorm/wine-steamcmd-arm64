@@ -49,7 +49,7 @@ dpkg-deb -x wine-${branch}-i386_*_i386.deb wine-installer
 dpkg-deb -x wine-${branch}-amd64_*_amd64.deb wine-installer
 dpkg-deb -x wine-${branch}_*_amd64.deb wine-installer
 mv wine-installer/opt/wine* ~/wine
-rm -rf wine-installer/ wine-${branch}*.deb
+rm -rf wine-installer/ wine-${branch}-i386_*_i386.deb wine-${branch}-amd64_*_amd64.deb wine-${branch}_*_amd64.deb
 
 echo "box86 ~/wine/bin/wine \$@" >> /usr/local/bin/wine
 echo "box64 ~/wine/bin/wine64 \$@" >> /usr/local/bin/wine64
@@ -61,3 +61,5 @@ chmod +x /usr/local/bin/wine /usr/local/bin/wine64 /usr/local/bin/wineboot /usr/
 wget https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
 chmod +x winetricks
 mv winetricks /usr/local/bin
+
+apt-get autoremove -y && apt-get clean autoclean && rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists
