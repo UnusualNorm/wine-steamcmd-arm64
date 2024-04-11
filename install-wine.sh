@@ -57,3 +57,7 @@ ln -s ~/wine/bin/wineboot /usr/local/bin/wineboot
 ln -s ~/wine/bin/winecfg /usr/local/bin/winecfg
 echo "box64 ~/wine/bin/wineserver \$@" >> /usr/local/bin/wineserver
 chmod +x /usr/local/bin/wine /usr/local/bin/wine64 /usr/local/bin/wineboot /usr/local/bin/winecfg /usr/local/bin/wineserver
+
+wget https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
+chmod +x winetricks
+mv winetricks /usr/local/bin
