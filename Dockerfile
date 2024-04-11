@@ -1,13 +1,15 @@
-FROM weilbyte/box
+# NOTE: Bookworm is currently broken with unwrapped time64 glibc functions: https://github.com/ptitSeb/box86/issues/600
+FROM debian:bullseye-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash curl ca-certificates \
-    xvfb
+    wget ca-certificates gpg \
+    xvfb xauth
+
+COPY install-box.sh /install-box.sh
+RUN chmod +x /install-box.sh && /install-box.sh && rm /install-box.sh
 
 COPY install-wine.sh /install-wine.sh
-RUN chmod +x /install-wine.sh
-RUN /install-wine.sh
-RUN rm /install-wine.sh
+RUN chmod +x /install-wine.sh && /install-wine.sh && rm /install-wine.sh
 
 RUN apt-get -y autoremove \
  && apt-get clean autoclean \

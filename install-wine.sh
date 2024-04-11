@@ -1,50 +1,23 @@
 #!/bin/bash
 set -e
+. /etc/os-release
 
-branch="stable"
-version="9.0.0.0"
-id=""
-dist=""
-tag="-1"
+branch="devel"
+# NOTE: 9.x is currently semi-broken with "could not exec wineserver": https://github.com/ptitSeb/box86/issues/154
+version="8.21~$VERSION_CODENAME-1"
 
-if [ -z "$id" ]; then
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        if [ -n "$ID" ]; then
-            id="$ID"
-        fi
-    fi
-fi
+mkdir -pm755 /etc/apt/keyrings
+wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
 
-if [ -z "$dist" ]; then
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        if [ -n "$VERSION_CODENAME" ]; then
-            dist="$VERSION_CODENAME"
-        fi
-    fi
-fi
+if [ -n "$version" ]; then version="=$version"; fi
+wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/$ID/dists/$VERSION_CODENAME/winehq-$VERSION_CODENAME.sources
 
-WINE32_LINK="https://dl.winehq.org/wine-builds/${id}/dists/${dist}/main/binary-i386/"
-WINE32_MAIN_DEB="wine-${branch}-i386_${version}~${dist}${tag}_i386.deb"
-WINE32_SUPPORT_DEB="wine-${branch}_${version}~${dist}${tag}_i386.deb"
+dpkg --add-architecture i386 && dpkg --add-architecture amd64
+apt-get update && apt-get download wine-$branch-i386:i386$version wine-$branch-amd64:amd64$version wine-$branch:amd64$version
 
-WINE64_LINK="https://dl.winehq.org/wine-builds/${id}/dists/${dist}/main/binary-amd64/"
-WINE64_MAIN_DEB="wine-${branch}-amd64_${version}~${dist}${tag}_amd64.deb"
-WINE64_SUPPORT_DEB="wine-${branch}_${version}~${dist}${tag}_amd64.deb"
-
-curl -O ${WINE32_LINK}${WINE32_MAIN_DEB}
-curl -O ${WINE32_LINK}${WINE32_SUPPORT_DEB}
-curl -O ${WINE64_LINK}${WINE64_MAIN_DEB}
-curl -O ${WINE64_LINK}${WINE64_SUPPORT_DEB}
-
-dpkg-deb -x ${WINE32_MAIN_DEB} wine-installer
-# dpkg-deb -x ${WINE32_SUPPORT_DEB} wine-installer # Conflicts with wine64 support files
-dpkg-deb -x ${WINE64_MAIN_DEB} wine-installer
-dpkg-deb -x ${WINE64_SUPPORT_DEB} wine-installer
-
-mv wine-installer/opt/wine* ~/wine
-rm -rf wine-installer
+# wget "https://dl.winehq.org/wine-builds/$ID/dists/$VERSION_CODENAME/main/binary-i386/wine-${branch}-i386_${version}_i386.deb"
+# wget "https://dl.winehq.org/wine-builds/$ID/dists/$VERSION_CODENAME/main/binary-amd64/wine-${branch}-amd64_${version}_amd64.deb"
+# wget "https://dl.winehq.org/wine-builds/$ID/dists/$VERSION_CODENAME/main/binary-amd64/wine-${branch}_${version}_amd64.deb"
 
 get_dependencies() {
     local deb_file="$1"
@@ -60,31 +33,23 @@ get_dependencies() {
     echo "${result[@]:1}"
 }
 
-wine32_dependencies=()
-wine32_dependencies=($(get_dependencies "$WINE32_MAIN_DEB"))
-wine32_dependencies+=($(get_dependencies "$WINE32_SUPPORT_DEB"))
-for i in "${!wine32_dependencies[@]}"; do
-    wine32_dependencies[$i]="${wine32_dependencies[$i]}:armhf"
-    if [[ ${wine32_dependencies[$i]} == *"wine"* ]]; then
-        unset wine32_dependencies[$i]
-    fi
+wine32_dependencies=($(get_dependencies wine-${branch}-i386_*_i386.deb))
+wine64_dependencies=($(get_dependencies wine-${branch}-amd64_*_amd64.deb))
+wine_dependencies=($(get_dependencies wine-${branch}_*_amd64.deb))
+
+for i in "${!wine32_dependencies[@]}"; do wine32_dependencies[$i]="${wine32_dependencies[$i]}:armhf"; done
+for i in "${!wine64_dependencies[@]}"; do wine64_dependencies[$i]="${wine64_dependencies[$i]}:arm64"; done
+for i in "${!wine_dependencies[@]}"; do
+    wine_dependencies[$i]="${wine_dependencies[$i]}:armhf"
+    if [[ ${wine_dependencies[$i]} == *"wine"* ]]; then unset wine_dependencies[$i]; fi
 done
 
-wine64_dependencies=()
-wine64_dependencies=($(get_dependencies "$WINE64_MAIN_DEB"))
-wine64_dependencies+=($(get_dependencies "$WINE64_SUPPORT_DEB"))
-for i in "${!wine64_dependencies[@]}"; do
-    wine64_dependencies[$i]="${wine64_dependencies[$i]}:arm64"
-    if [[ ${wine64_dependencies[$i]} == *"wine"* ]]; then
-        unset wine64_dependencies[$i]
-    fi
-done
-
-dpkg --add-architecture armhf && apt-get update
-apt-get install --no-install-recommends -y ${wine32_dependencies[@]}
-apt-get install --no-install-recommends -y ${wine64_dependencies[@]}
-
-rm ${WINE32_MAIN_DEB} ${WINE32_SUPPORT_DEB} ${WINE64_MAIN_DEB} ${WINE64_SUPPORT_DEB}
+apt-get update && apt-get install --no-install-recommends -y "${wine32_dependencies[@]}" "${wine64_dependencies[@]}" "${wine_dependencies[@]}"
+dpkg-deb -x wine-${branch}-i386_*_i386.deb wine-installer
+dpkg-deb -x wine-${branch}-amd64_*_amd64.deb wine-installer
+dpkg-deb -x wine-${branch}_*_amd64.deb wine-installer
+mv wine-installer/opt/wine* ~/wine
+rm -rf wine-installer/ wine-${branch}*.deb
 
 echo "box86 ~/wine/bin/wine \$@" >> /usr/local/bin/wine
 echo "box64 ~/wine/bin/wine64 \$@" >> /usr/local/bin/wine64
@@ -92,7 +57,3 @@ ln -s ~/wine/bin/wineboot /usr/local/bin/wineboot
 ln -s ~/wine/bin/winecfg /usr/local/bin/winecfg
 echo "box64 ~/wine/bin/wineserver \$@" >> /usr/local/bin/wineserver
 chmod +x /usr/local/bin/wine /usr/local/bin/wine64 /usr/local/bin/wineboot /usr/local/bin/winecfg /usr/local/bin/wineserver
-
-apt-get install --no-install-recommends -y cabextract
-curl -O https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
-chmod +x winetricks && mv winetricks /usr/local/bin/winetricks
